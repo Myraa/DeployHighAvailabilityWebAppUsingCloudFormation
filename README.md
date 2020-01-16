@@ -5,3 +5,19 @@ URL for the website
 
 
 
+Detailed Architecture
+![alt text](https://github.com/Myraa/DeployHighAvailabilityWebAppUsingCloudFormation/blob/master/UdagramArchitecture.jpeg)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
