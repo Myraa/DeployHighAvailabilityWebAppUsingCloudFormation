@@ -1,0 +1,347 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "udacity"
+
+# Stack Parameters
+Parameters:
+  VpcCIDR: 
+    Type: String
+    Description: "Enter IP range for VPC" 
+    Default: 10.0.0.0/16
+  PublicSubnet1CIDR:
+    Type: String
+    Description: "Enter IP range for Public Subnet1"
+    Default: 10.0.0.0/24 
+  PublicSubnet2CIDR:
+    Type: String
+    Description: "Enter IP range for Public Subnet2" 
+    Default: 10.0.1.0/24  
+  PrivateSubnet1CIDR:
+    Type: String
+    Description: "Enter IP range for Private Subnet1"
+    Default: 10.0.2.0/24 
+  PrivateSubnet2CIDR:
+    Type: String
+    Description: "Enter IP range for Private Subnet2"
+    Default: 10.0.3.0/24  
+  KeyPair:
+    Type: String
+    Description: "Enter key pair" 
+  InstanceCount:
+    Type: String
+    Description: "Enter instance count" 
+  InstanceType:
+    Type: String
+    Description: "Instance Type"   
+    AllowedValues: [t2.medium, t3.small, t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge]
+
+# Stack Resources
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-VPC" ]]
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PrivateSubnet(AZ1)" ]]
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PrivateSubnet(AZ2)" ]]
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PublicSubnet(AZ1)" ]]
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PublicSubnet(AZ2)" ]]
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-igw" ]]
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties: 
+      Domain: vpc
+  NatGateway2EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties: 
+      Domain: vpc
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt NatGateway2EIP.AllocationId
+      SubnetId: !Ref PublicSubnet2
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: keyname
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PublicRouteTable" ]]
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PrivateRouteTable(AZ1)" ]]
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable1
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-PrivateRouteTable(AZ2)" ]]
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable2
+  AutoScalingLaunchConfiguration:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      ImageId: ami-04b9e92b5572fa0d1
+      InstanceType: t2.medium
+      KeyName: !Ref KeyPair
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      SecurityGroups:
+        - Ref: "EC2InstanceSecurityGroup"
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sdk"
+          Ebs:
+            VolumeSize: '10' #10GB
+      UserData: {
+        "Fn::Base64": { "Fn::Join": ["", [
+          "#!/bin/bash\n",
+          "apt-get update -y\n",
+          "apt-get install unzip awscli -y\n",
+          "apt-get install apache2 -y\n",
+          "systemctl start apache2.service\n",
+          "cd /var/www/html\n",
+          "aws s3 cp s3://udacitycloudtemplatebucket/udacity-starter-website.zip .\n",
+          "unzip -o udacity-starter-website.zip\n"
+        ] ] }
+      }
+  AutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      VPCZoneIdentifier: 
+      - !Ref PrivateSubnet1
+      - !Ref PrivateSubnet2
+      LaunchConfigurationName: !Ref AutoScalingLaunchConfiguration
+      MinSize: 4
+      MaxSize: 6
+      DesiredCapacity: !Ref InstanceCount
+      TargetGroupARNs:
+      - Ref: WebAppTargetGroup
+      Tags:
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-instance" ]]
+          PropagateAtLaunch: "true"
+  
+  WebAppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: !Ref VPC
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: WebAppTargetGroup
+      LoadBalancerArn:
+        Ref: ElasticLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  ALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'WebAppTargetGroup'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'Listener'
+      Priority: 1
+  EC2InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties: 
+      GroupDescription: "udacity-sg"
+      VpcId: !Ref VPC
+      SecurityGroupIngress: 
+        - IpProtocol: "tcp"
+          FromPort: "80"
+          ToPort: "80"
+          SourceSecurityGroupId: !Ref ElbSecurityGroup
+        - IpProtocol: "tcp"
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: "0.0.0.0/0"
+      SecurityGroupEgress:
+        - IpProtocol: "tcp"
+          FromPort: "0"
+          ToPort: "65535"
+          CidrIp: "0.0.0.0/0"
+      Tags: 
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-instance-sg" ]]
+  EC2InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+      - Ref: EC2InstanceRole
+  EC2InstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "Service": [ "ec2.amazonaws.com" ] },
+            "Action": [ "sts:AssumeRole" ]
+          }
+        ]
+      }
+      Path: "/"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"     
+  
+  ElasticLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      SecurityGroups: 
+      - Ref: ElbSecurityGroup
+      Subnets: 
+      - !Ref PublicSubnet1
+      - !Ref PublicSubnet2
+      Tags: 
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-elb" ]]
+  ElbSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Udacity ELB Security Group"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: "0.0.0.0/0"
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags: 
+        - Key: "Name"
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-elb-sg" ]]
+
+# Stack Outputs
+Outputs:
+  VPC:
+    Description: "Created VPC Name"
+    Value: !Ref VPC
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCID
+  PublicSubnets:
+    Description: "list of the public subnets"
+    Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2 ]]
+    Export:
+      Name: !Sub ${AWS::StackName}-PUB-SNETS
+  PrivateSubnets:
+    Description: "list of the public subnets"
+    Value: !Join [ ",", [ !Ref PrivateSubnet1, !Ref PrivateSubnet2 ]]
+    Export:
+      Name: !Sub ${AWS::StackName}-PRIV-SNETS
+  ElbDomainName: 
+    Description: "Public DNS name of Elastic Load Balancer"
+    Value: !Join [ "", [ 'http://', !GetAtt ElasticLoadBalancer.DNSName ]]
+    Export:
+      Name: !Sub ${AWS::StackName}-ELB-DNS
+   
