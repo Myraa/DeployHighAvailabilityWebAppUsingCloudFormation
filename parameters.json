@@ -5,11 +5,11 @@
     },
     {
         "ParameterKey": "InstanceCount",
-        "ParameterValue": "10.0.0.0/16"
+        "ParameterValue": "4"
     },
     {
         "ParameterKey": "KeyPair",
-        "ParameterValue": "****"
+        "ParameterValue": "awspractice_keypair"
     },
     {
         "ParameterKey": "PrivateSubnet1CIDR",

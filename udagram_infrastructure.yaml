@@ -40,7 +40,7 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCIDR
-      EnableDnsSupport: true
+      EnableDnsHostnames: true
       Tags:
         - Key: Name
           Value: !Join [ "", [ !Ref "AWS::StackName", "-VPC" ]]
@@ -68,6 +68,7 @@ Resources:
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Join [ "", [ !Ref "AWS::StackName", "-PublicSubnet(AZ1)" ]]
@@ -77,6 +78,7 @@ Resources:
       AvailabilityZone: !Select [ 1, !GetAZs '' ]
       VpcId: !Ref VPC
       CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Join [ "", [ !Ref "AWS::StackName", "-PublicSubnet(AZ2)" ]]
@@ -171,12 +173,50 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
+  SecurityGroupBastion:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for bastion server
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-BASTIONSecurityGroup" ]] 
+  BastionPublicSubnet1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-04b9e92b5572fa0d1
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPair
+      SubnetId: !Ref PublicSubnet1
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      SecurityGroupIds:
+        - Ref: SecurityGroupBastion
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-BASTIONINSTANCE(AZ1)" ]]
+  BastionPublicSubnet2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-04b9e92b5572fa0d1
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPair
+      SubnetId: !Ref PublicSubnet2
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      SecurityGroupIds:
+       - Ref: SecurityGroupBastion
+      Tags:
+        - Key: Name
+          Value: !Join [ "", [ !Ref "AWS::StackName", "-BASTIONINSTANCE(AZ2)" ]]
   AutoScalingLaunchConfiguration:
     Type: "AWS::AutoScaling::LaunchConfiguration"
     Properties:
       ImageId: ami-04b9e92b5572fa0d1
       InstanceType: t2.medium
-      KeyName: !Ref KeyPair
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroups:
         - Ref: "EC2InstanceSecurityGroup"
@@ -260,7 +300,7 @@ Resources:
         - IpProtocol: "tcp"
           FromPort: "22"
           ToPort: "22"
-          CidrIp: "0.0.0.0/0"
+          SourceSecurityGroupId: !Ref SecurityGroupBastion
       SecurityGroupEgress:
         - IpProtocol: "tcp"
           FromPort: "0"
@@ -344,4 +384,13 @@ Outputs:
     Value: !Join [ "", [ 'http://', !GetAtt ElasticLoadBalancer.DNSName ]]
     Export:
       Name: !Sub ${AWS::StackName}-ELB-DNS
-   
+  BastionHostDNSPublicSubnet1: 
+    Description: "Public DNS name of Bastionhost in Public subnet1"
+    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet1.DNSName ]]
+    Export:
+      Name: !Sub ${AWS::StackName}-BASTION-HOST-PUB-SN-1
+  BastionHostDNSPublicSubnet2: 
+    Description: "Public DNS name of Bastionhost in Public subnet2"
+    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet2.DNSName ]]
+    Export:
+      Name: !Sub ${AWS::StackName}-BASTION-HOST-PUB-SN-2     
