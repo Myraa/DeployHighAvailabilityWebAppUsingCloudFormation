@@ -29,6 +29,6 @@
     },
     {
         "ParameterKey": "InstanceType",
-        "ParameterValue": "t3.small"
+        "ParameterValue": "t3.medium"
     }
 ]

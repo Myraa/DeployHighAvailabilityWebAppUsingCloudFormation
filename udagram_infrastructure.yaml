@@ -32,7 +32,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: "Instance Type"   
-    AllowedValues: [t2.medium, t3.small, t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge]
+    AllowedValues: [t3.medium, t3.large, t3.xlarge, t3.2xlarge]
 
 # Stack Resources
 Resources:
@@ -216,7 +216,7 @@ Resources:
     Type: "AWS::AutoScaling::LaunchConfiguration"
     Properties:
       ImageId: ami-04b9e92b5572fa0d1
-      InstanceType: t2.medium
+      InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfile
       SecurityGroups:
         - Ref: "EC2InstanceSecurityGroup"
