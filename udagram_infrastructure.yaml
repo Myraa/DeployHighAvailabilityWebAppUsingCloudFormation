@@ -168,7 +168,7 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NatGateway2
-  PrivateSubnet1RouteTableAssociation:
+  PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnet2
@@ -179,7 +179,7 @@ Resources:
       GroupDescription: Security group for bastion server
       VpcId: !Ref VPC
       SecurityGroupIngress:
-      - CidrIp: 0.0.0.0/0
+      - CidrIp: 162.227.87.147/0
         IpProtocol: tcp
         FromPort: 22
         ToPort: 22
@@ -386,11 +386,11 @@ Outputs:
       Name: !Sub ${AWS::StackName}-ELB-DNS
   BastionHostDNSPublicSubnet1: 
     Description: "Public DNS name of Bastionhost in Public subnet1"
-    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet1.DNSName ]]
+    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet1.PublicDnsName ]]
     Export:
       Name: !Sub ${AWS::StackName}-BASTION-HOST-PUB-SN-1
   BastionHostDNSPublicSubnet2: 
     Description: "Public DNS name of Bastionhost in Public subnet2"
-    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet2.DNSName ]]
+    Value: !Join [ "", [ 'http://', !GetAtt BastionPublicSubnet2.PublicDnsName ]]
     Export:
       Name: !Sub ${AWS::StackName}-BASTION-HOST-PUB-SN-2     
