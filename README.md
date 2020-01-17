@@ -8,6 +8,8 @@ To destroy the stack, run destroy.sh.
 
 URL for the website  would be the Public Load balancer DNS name with "http://" appended at the begining of the DNS name. You can view the URL in the Outputs in AWS console.
 
+WebSite URL for my App: http://udaci-Elast-1OCWMJML160UN-1713918924.us-east-1.elb.amazonaws.com
+
 
 
 Detailed Architecture
